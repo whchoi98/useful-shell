@@ -8,9 +8,9 @@ ETH_DEVICE_INDEX="2"
 ENI2="7"
 ETHX="ens"$[$ENI2]
 
-curl -O https://bootstrap.pypa.io/get-pip.py || (echo "Error while downloading pip." && exit 1)
-python3 get-pip.py --user || (echo "Error while installing pip." && exit 1)
-~/.local/bin/pip install awscli --upgrade --user || (echo "Error while installing awscli." && exit 1)
+curl -O https://bootstrap.pypa.io/get-pip.py 
+python3 get-pip.py --user 
+~/.local/bin/pip install awscli --upgrade --user 
 
 INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep region | awk -F\" '{print $4}')
