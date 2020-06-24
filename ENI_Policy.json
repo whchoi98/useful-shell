@@ -1,0 +1,15 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowAllAttachENI",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DetachNetworkInterface",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:AttachNetworkInterface"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
