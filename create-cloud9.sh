@@ -5,6 +5,7 @@ export AWS_REGION=ap-northeast-2
 export EC2_TYPE=m5.xlarge
 export C9_ROLE_NAME=c9_role
 export C9_PROFILE=c9_profile
+export C9_NAME=MyCloud9
 
 aws iam create-role --path / \
 --role-name ${C9_ROLE_NAME} \
