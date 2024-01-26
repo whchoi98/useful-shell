@@ -32,6 +32,6 @@ sleep 60
 
 C9_EC2_ID=$(aws ec2 describe-instances --region "${AWS_REGION}" --filters "Name=tag:aws:cloud9:environment,Values=${C9_EC2}" --query "Reservations[*].Instances[*].InstanceId" --output text)
 
-aws ec2 associate-iam-instance-profile --instance-id "${C9_EC2}" --iam-instance-profile Name=${C9_PROFILE} --region "${AWS_REGION}"
+aws ec2 associate-iam-instance-profile --instance-id "${C9_EC2_ID}" --iam-instance-profile Name=${C9_PROFILE} --region "${AWS_REGION}"
 
 aws cloud9 update-environment --environment-id "${C9_EC2}" --managed-credentials-action DISABLE
