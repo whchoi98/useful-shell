@@ -1,20 +1,24 @@
 #!/bin/bash
 #Latest k8s version = 1.23.17, 1.24.17, 1.25.16, 1.26.11, 1.27.8, 1.28.4, 
-export K8S_VERSION="1.25.16"
-
+export K8S_VERSION="1.25.12"
+echo "--------------------------"
 echo "Install - KUBECTL"
 echo "--------------------------"
 cd ~
-curl -LO https://storage.googleapis.com/kubernetes-release/release/{K8S_VERSION}/bin/linux/amd64/kubectl
+curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/${K8S_VERSION}/2023-11-14/bin/darwin/amd64/kubectl
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
 source <(kubectl completion bash)
 echo "source <(kubectl completion bash)" >> ~/.bashrc
-kubectl version --client --output yaml
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+kubectl version --short --client
+source <(kubectl completion bash)
+echo "source <(kubectl completion bash)" >> ~/.bashrc
 echo "-------------------------"
 echo "Completed setup of kubectl"
-sleep 3
 
+echo "-------------------------"
 echo "Install - utils"
 echo "--------------------------"
 # Utils
@@ -29,9 +33,10 @@ for command in kubectl jq envsubst aws
 }' | tee -a ~/.bashrc && source ~/.bashrc
 echo "-------------------------"
 echo "Completed setup of utils"
-sleep 3
+
 
 # eksctl
+echo "--------------------------"
 echo "Install - eksctl"
 echo "--------------------------"
 curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
@@ -41,7 +46,7 @@ sudo mv /tmp/eksctl /usr/local/bin
 eksctl version
 echo "-------------------------"
 echo "Completed setup of eksctl"
-sleep 3
+echo "-------------------------"
 
 echo "Install - K9s"
 echo "--------------------------"
@@ -50,7 +55,7 @@ K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest 
 curl -sL https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz | sudo tar xfz - -C /usr/local/bin k9s
 echo "-------------------------"
 echo "Completed setup of K9s"
-sleep 3
+echo "-------------------------"
 
 echo "Install - kube krew"
 echo "--------------------------"
@@ -66,19 +71,17 @@ echo "--------------------------"
 )
 export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 source ~/.bashrc
-echo "-------------------------"
+echo "--------------------------"
 echo "Completed setup of Krew"
-sleep 3
+echo "--------------------------"
 
-
-echo "Install - krew ctx"
 echo "--------------------------"
 #kube ctx
 kubectl krew install ctx
 echo "-------------------------"
 echo "Completed setup of krew ctx"
-sleep 3
 
+echo "-------------------------"
 echo "Install - Helm"
 echo "--------------------------"
 cd ~/environment
