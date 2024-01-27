@@ -95,3 +95,6 @@ helm completion bash >> ~/.bash_completion
 source <(helm completion bash)
 echo "-------------------------"
 echo "Completed setup of Helm"
+echo "-------------------------"
+echo "Welcome to the exciting world of EKS. :)"
+echo "-------------------------"
