@@ -23,6 +23,6 @@ session-manager-plugin --version
 
 echo "Install bash-comletion jq"
 echo "------------------------------------------------------"
-sudo yum -y install jq gettext bash-completion moreutils
+sudo yum -y install jq gettext bash-completion
 
 
