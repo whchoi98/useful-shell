@@ -5,7 +5,7 @@ echo "--------------------------"
 echo "Install - KUBECTL"
 echo "--------------------------"
 cd ~
-curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/${K8S_VERSION}/2023-11-14/bin/darwin/amd64/kubectl
+curl -LO https://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/linux/amd64/kubectl
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
 source <(kubectl completion bash)
@@ -76,10 +76,15 @@ echo "Completed setup of Krew"
 echo "--------------------------"
 
 echo "--------------------------"
-#kube ctx
+#krew ctx
 kubectl krew install ctx
 echo "-------------------------"
 echo "Completed setup of krew ctx"
+
+#krew ns, tree
+#kubectl krew install ns
+#kubectl krew install tree
+
 
 echo "-------------------------"
 echo "Install - Helm"
