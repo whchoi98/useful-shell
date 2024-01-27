@@ -1,10 +1,11 @@
 #!/bin/bash
 #Latest k8s version = 1.23.17, 1.24.17, 1.25.16, 1.26.11, 1.27.8, 1.28.4, 
-export K8S_VERSION="1.25.12"
+export K8S_VERSION="v1.25.12"
 echo "--------------------------"
 echo "Install - KUBECTL"
 echo "--------------------------"
 cd ~
+curl -LO https://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/linux/amd64/kubectl
 curl -LO https://storage.googleapis.com/kubernetes-release/release/${K8S_VERSION}/bin/linux/amd64/kubectl
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
