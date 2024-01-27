@@ -3,11 +3,16 @@
 #CLUSTER1_NAME=
 #EKS_VERSION=
 #Valuse="Subnet's Name tag's Value"
+export AWS_REGION=$(curl -s 169.254.169.254/latest/dynamic/instance-identity/document | jq -r '.region')
+export ACCOUNT_ID=$(aws sts get-caller-identity --region ${AWS_REGION} --output text --query Account)
+echo "export AWS_REGION=${AWS_REGION}" | tee -a ~/.bash_profile
+echo "export ACCOUNT_ID=${ACCOUNT_ID}" | tee -a ~/.bash_profile
 export NODE_INSTANCE_TYPE=m5.xlarge
 export public_mgmd_node="managed-frontend-workloads"
 export private_mgmd_node="managed-backend-workloads"
 echo "export public_mgmd_node=${public_mgmd_node}" | tee -a ~/.bash_profile
 echo "export private_mgmd_node=${private_mgmd_node}" | tee -a ~/.bash_profile
+source ~/.bash_profile
 
 AZS=($(aws ec2 describe-availability-zones --query 'AvailabilityZones[].ZoneName' --output text --region "$AWS_REGION"))
 echo "export C1_VPC_ID=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=$VPC_NAME | jq -r '.Vpcs[].VpcId')" | tee -a ~/.bash_profile
@@ -103,6 +108,7 @@ managedNodeGroups:
 EOF
 
 cd ~/environment/
+source ~/.bash_profile
 eksctl create cluster -f lattice_eks01.yaml --dry-run
 
 
