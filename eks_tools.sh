@@ -1,6 +1,6 @@
 #!/bin/bash
 #Latest k8s version = 1.24.17, 1.25.16, 1.26.15, 1.27.13, 1.28.9, 1.29.4
-export K8S_VERSION="v1.27.16"
+export K8S_VERSION="v1.27.13"
 echo "--------------------------"
 echo "Install - KUBECTL"
 echo "--------------------------"
