@@ -1,6 +1,6 @@
 #!/bin/bash
-#Latest k8s version = 1.23.17, 1.24.17, 1.25.16, 1.26.11, 1.27.8, 1.28.4, 
-export K8S_VERSION="v1.25.16"
+#Latest k8s version = 1.24.17, 1.25.16, 1.26.15, 1.27.13, 1.28.9, 1.29.4
+export K8S_VERSION="v1.27.16"
 echo "--------------------------"
 echo "Install - KUBECTL"
 echo "--------------------------"
@@ -90,7 +90,7 @@ echo "-------------------------"
 echo "Install - Helm"
 echo "--------------------------"
 cd ~/environment
-export HELM_VERSION=3.13.2
+export HELM_VERSION=3.15.2
 curl -L https://git.io/get_helm.sh | bash -s -- --version ${HELM_VERSION}
 helm version --short
 
