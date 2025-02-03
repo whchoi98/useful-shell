@@ -86,7 +86,7 @@ echo "-------------------------"
 echo "Install - Helm"
 echo "--------------------------"
 cd ~/environment
-export HELM_VERSION=3.15.2
+export HELM_VERSION=3.16.4
 curl -L https://git.io/get_helm.sh | bash -s -- --version ${HELM_VERSION}
 helm version --short
 
