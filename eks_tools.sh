@@ -89,8 +89,11 @@ echo "------------------------------------------------------"
 
 # Bash 자동완성 설정
 echo "🧠 [6/6] Bash 자동완성 구성 중..."
-echo ". /etc/profile.d/bash_completion.sh" >> "${HOME}/.bash_profile"
-echo ". ${HOME}/.bash_completion" >> "${HOME}/.bash_profile"
+
+# /etc/profile.d/bash_completion.sh가 존재하면 로드
+if [ -f /etc/profile.d/bash_completion.sh ]; then
+  echo "[ -f /etc/profile.d/bash_completion.sh ] && . /etc/profile.d/bash_completion.sh" >> "${HOME}/.bash_profile"
+fi
 
 echo "------------------------------------------------------"
 echo "🎉 EKS 개발 도구 설치가 완료되었습니다!"
