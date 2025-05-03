@@ -1,108 +1,119 @@
 #!/bin/bash
-# This script sets up the EKS toolset, including kubectl, fzf, kns, ktx, eksctl, and Helm.
-# 이 스크립트는 kubectl, fzf, kns, ktx, eksctl, Helm 등 EKS 도구를 설정합니다.
 
-source ./helper.sh 
-# Load helper functions or variables from helper.sh / helper.sh 파일 로드
+# 🧰 EKS Toolset 설치 스크립트: kubectl, fzf, kns, ktx, eksctl, helm
 
-whoami 
-# Display the current user / 현재 사용자 출력
+set -e
 
+source ./helper.sh 2>/dev/null || true
+
+echo "👤 현재 사용자: $(whoami)"
+
+# 🏠 홈 디렉토리 설정
 if [ $(id -u) -eq 0 ]; then
-  export HOME="/root" 
-  # If the user is root, set HOME to /root / 사용자가 root라면 HOME을 /root로 설정
+  export HOME="/root"
 else
   export HOME="/home/$(whoami)"
-  # Otherwise, set HOME to the user's home directory / 그렇지 않으면 사용자의 홈 디렉토리로 설정
 fi
 
-env 
-# Display environment variables / 환경 변수를 출력
+echo "📦 환경 변수 설정 완료"
+env | grep -E '^HOME|^USER'
 
-echo "Install EKS toolset"
-# EKS 도구 설치 시작 메시지 출력
-
+echo "🔧 EKS Toolset 설치 시작"
 echo "------------------------------------------------------"
 
-# Download kubectl / kubectl 다운로드
-curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.29.10/2024-12-12/bin/linux/amd64/kubectl
-#curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.30.6/2024-12-12/bin/linux/amd64/kubectl
-#curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.31.2/2024-12-12/bin/linux/amd64/kubectl
-chmod +x ./kubectl 
-# Make kubectl executable / kubectl 실행 가능하도록 권한 설정
+# ============================================
+# 📌 Step 1: kubectl 설치 (Amazon EKS용 버전 선택)
+# ============================================
+
+echo "📡 EKS에서 지원하는 kubectl 버전을 확인 중입니다..."
+K8S_VERSIONS=("1.30.7" "1.31.3" "1.32.0")  # 필요한 경우 자동화 가능
+
+for i in "${!K8S_VERSIONS[@]}"; do
+  echo "$((i+1)). ${K8S_VERSIONS[$i]}"
+done
+
+read -p "👉 설치할 kubectl 버전 번호를 선택하세요 (1-${#K8S_VERSIONS[@]}): " SELECTED_INDEX
+if ! [[ "$SELECTED_INDEX" =~ ^[0-9]+$ ]] || [ "$SELECTED_INDEX" -lt 1 ] || [ "$SELECTED_INDEX" -gt ${#K8S_VERSIONS[@]} ]; then
+  echo "❌ 잘못된 선택입니다. 종료합니다."
+  exit 1
+fi
+
+KUBECTL_VERSION="${K8S_VERSIONS[$((SELECTED_INDEX-1))]}"
+KUBECTL_DATE="2024-12-12"
+if [[ "$KUBECTL_VERSION" == "1.32.0" ]]; then
+  KUBECTL_DATE="2024-12-20"
+fi
+
+KUBECTL_URL="https://s3.us-west-2.amazonaws.com/amazon-eks/${KUBECTL_VERSION}/${KUBECTL_DATE}/bin/linux/amd64/kubectl"
+
+echo "⬇️  kubectl ${KUBECTL_VERSION} 다운로드 중..."
+curl -s -O "$KUBECTL_URL"
+chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/
-# Move kubectl to /usr/local/bin / kubectl을 /usr/local/bin으로 이동
 
-kubectl version --client --output yaml 
-# Check the kubectl version / kubectl 버전 확인
-
-echo "Installed Kubectl and util tools"
-# kubectl 및 유틸리티 도구 설치 완료 메시지 출력
+echo "✅ kubectl 설치 완료:"
+kubectl version --client --output yaml
+kubectl completion bash >> "${HOME}/.bash_completion"
 
 echo "------------------------------------------------------"
 
-/usr/local/bin/kubectl completion bash >> /home/ec2-user/.bash_completion 
-# Enable kubectl bash completion / kubectl bash 자동완성 설정
-
-# Install fzf for command-line fuzzy finder / 커맨드라인 fuzzy finder fzf 설치
+# ============================================
+# 🔍 Step 2: fzf 설치
+# ============================================
+echo "🔍 fzf 설치 중..."
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install --all 
-source ~/.bashrc 
-# Reload bash configuration / bash 설정 다시 로드
+~/.fzf/install --all
+source ~/.bashrc
 
-# Download and install kns and ktx utilities / kns와 ktx 유틸리티 다운로드 및 설치
-wget https://raw.githubusercontent.com/blendle/kns/master/bin/kns
-wget https://raw.githubusercontent.com/blendle/kns/master/bin/ktx
-chmod +x ./kns ./ktx 
-# Make them executable / 실행 가능하도록 권한 설정
-sudo mv ./kns /usr/local/bin/kns
-sudo mv ./ktx /usr/local/bin/ktx
-# Move them to /usr/local/bin / /usr/local/bin으로 이동
+# ============================================
+# 🎛 Step 3: kns & ktx 설치
+# ============================================
+echo "🎛 kns 및 ktx 설치 중..."
+wget -q https://raw.githubusercontent.com/blendle/kns/master/bin/kns
+wget -q https://raw.githubusercontent.com/blendle/kns/master/bin/ktx
+chmod +x kns ktx
+sudo mv kns /usr/local/bin/kns
+sudo mv ktx /usr/local/bin/ktx
 
-# Add an alias for kubectl node management / kubectl 노드 관리 alias 추가
-echo "alias kgn='kubectl get nodes -L beta.kubernetes.io/arch -L eks.amazonaws.com/capacityType -L beta.kubernetes.io/instance-type -L eks.amazonaws.com/nodegroup -L topology.kubernetes.io/zone -L karpenter.sh/provisioner-name -L karpenter.sh/capacity-type'" | tee -a /home/ec2-user/.bashrc
+# 🔗 유용한 kubectl alias 추가
+echo "alias kgn='kubectl get nodes -L beta.kubernetes.io/arch -L eks.amazonaws.com/capacityType -L beta.kubernetes.io/instance-type -L eks.amazonaws.com/nodegroup -L topology.kubernetes.io/zone -L karpenter.sh/provisioner-name -L karpenter.sh/capacity-type'" >> "${HOME}/.bashrc"
 
-echo "Installed additional tools"
-# 추가 도구 설치 완료 메시지 출력
-
+echo "✅ fzf, kns, ktx 설치 완료"
 echo "------------------------------------------------------"
 
-# Download and install eksctl / eksctl 다운로드 및 설치
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+# ============================================
+# 🚀 Step 4: eksctl 설치
+# ============================================
+echo "🚀 eksctl 설치 중..."
+curl -sSL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv -v /tmp/eksctl /usr/local/bin
-# Move eksctl to /usr/local/bin / eksctl을 /usr/local/bin으로 이동
+eksctl version
 
-eksctl version 
-# Check eksctl version / eksctl 버전 확인
-
-echo "Downloaded and installed eksctl"
-# eksctl 설치 완료 메시지 출력
-
+echo "✅ eksctl 설치 완료"
 echo "------------------------------------------------------"
 
-# Install Helm / Helm 설치
-wget https://get.helm.sh/helm-v3.13.2-linux-amd64.tar.gz
-tar -zxvf helm-v3.13.2-linux-amd64.tar.gz 
-# Extract the Helm package / Helm 패키지 해제
-sudo cp linux-amd64/helm /usr/local/bin/helm 
-# Move Helm binary to /usr/local/bin / Helm 바이너리를 /usr/local/bin으로 이동
+# ============================================
+# ⚓ Step 5: Helm 설치
+# ============================================
+echo "⚓ Helm 설치 중..."
+wget -q https://get.helm.sh/helm-v3.13.2-linux-amd64.tar.gz
+tar -zxf helm-v3.13.2-linux-amd64.tar.gz
+sudo cp linux-amd64/helm /usr/local/bin/helm
+helm version --short
 
-helm version --short 
-# Check Helm version / Helm 버전 확인
-
-# Add Helm repositories and update / Helm 저장소 추가 및 업데이트
+# Helm 저장소 설정
 helm repo add stable https://charts.helm.sh/stable
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
-echo "Completed setup of Helm"
-# Helm 설치 완료 메시지 출력
-
+echo "✅ Helm 설치 및 저장소 구성 완료"
 echo "------------------------------------------------------"
 
-# Enable bash completion / bash 자동완성 활성화
-echo ". /etc/profile.d/bash_completion.sh" | tee -a /home/ec2-user/.bash_profile
-echo ". /home/ec2-user/.bash_completion" | tee -a /home/ec2-user/.bash_profile
+# ============================================
+# 🎯 Bash 자동완성 설정
+# ============================================
+echo ". /etc/profile.d/bash_completion.sh" >> "${HOME}/.bash_profile"
+echo ". ${HOME}/.bash_completion" >> "${HOME}/.bash_profile"
 
-log_text "Success" "Completed EKS Tools Setup..."
-# Log a success message / 설치 완료 성공 메시지 로그
+echo "🥳 모든 EKS 도구 설치가 완료되었습니다!"
+log_text "Success" "✅ Completed EKS Tools Setup"
