@@ -1,50 +1,66 @@
 #!/bin/bash
 
-# 🛠️ EKS 개발 환경을 위한 필수 도구 설치 스크립트
+# 🛠️ EKS 개발 도구 설치 스크립트 (kubectl 1.31.3 + Helm 3.16.4)
+# 도구: kubectl, eksctl, helm, fzf, kns, ktx, jq, gettext, sponge
 
 set -e
 
-# Kubernetes 버전 설정
-export K8S_VERSION="v1.30.2"
-export HELM_VERSION="3.16.4"
+KUBECTL_VERSION="1.31.3"
+HELM_VERSION="3.16.4"
+CURRENT_USER=$(whoami)
+export HOME="/home/${CURRENT_USER}"
 
 echo "------------------------------------------------------"
-echo "📦 [1/7] kubectl ${K8S_VERSION} 설치 중..."
+echo "👤 사용자 확인: $CURRENT_USER"
+echo "🏠 HOME 디렉토리: $HOME"
 echo "------------------------------------------------------"
 
-cd ~
-curl -sLO "https://dl.k8s.io/release/${K8S_VERSION}/bin/linux/amd64/kubectl"
+# kubectl 설치
+echo "📦 [1/6] kubectl ${KUBECTL_VERSION} 설치 중..."
+curl -sLO "https://s3.us-west-2.amazonaws.com/amazon-eks/${KUBECTL_VERSION}/2024-12-12/bin/linux/amd64/kubectl"
 chmod +x kubectl
 sudo mv kubectl /usr/local/bin/
 kubectl version --client --output=yaml
-
-# 자동완성 설정
-kubectl completion bash > ~/.kubectl_completion
-echo "source ~/.kubectl_completion" >> ~/.bashrc
-source ~/.kubectl_completion
-
+kubectl completion bash > "${HOME}/.kubectl_completion"
+echo "source ${HOME}/.kubectl_completion" >> "${HOME}/.bashrc"
+source "${HOME}/.kubectl_completion"
 echo "✅ kubectl 설치 완료"
 echo "------------------------------------------------------"
 
-echo "🧰 [2/7] 필수 유틸리티 설치 중 (jq, gettext, bash-completion, moreutils)..."
-sudo yum -y install jq gettext bash-completion moreutils
+# 필수 유틸리티 설치
+echo "🔧 [2/6] jq, gettext, bash-completion, sponge 설치 중..."
+sudo yum -y install jq gettext bash-completion
 
-for cmd in kubectl jq envsubst aws; do
-  which $cmd &>/dev/null && echo "✅ $cmd: 사용 가능" || echo "❌ $cmd: 설치되지 않음"
+if ! command -v sponge &>/dev/null; then
+  echo "📦 sponge 수동 설치 중..."
+  curl -sLO https://raw.githubusercontent.com/joeyh/moreutils/master/sponge
+  chmod +x sponge
+  sudo mv sponge /usr/local/bin/
+fi
+
+for cmd in kubectl jq envsubst sponge; do
+  which $cmd &>/dev/null && echo "✅ $cmd: OK" || echo "❌ $cmd: 설치 실패"
 done
-
-# yq (도커 기반)
-echo "🐳 yq alias 추가"
-echo '
-yq() {
-  docker run --rm -i -v "${PWD}":/workdir mikefarah/yq "$@"
-}' | tee -a ~/.bashrc
-source ~/.bashrc
-
 echo "✅ 유틸리티 설치 완료"
 echo "------------------------------------------------------"
 
-echo "🚀 [3/7] eksctl 설치 중..."
+# fzf, kns, ktx 설치
+echo "🔍 [3/6] fzf, kns, ktx 설치 중..."
+git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+~/.fzf/install --all --no-zsh --no-fish --no-bash
+
+wget -q https://raw.githubusercontent.com/blendle/kns/master/bin/kns
+wget -q https://raw.githubusercontent.com/blendle/kns/master/bin/ktx
+chmod +x kns ktx
+sudo mv kns ktx /usr/local/bin/
+
+echo "alias kgn='kubectl get nodes -L beta.kubernetes.io/arch -L eks.amazonaws.com/capacityType -L beta.kubernetes.io/instance-type -L eks.amazonaws.com/nodegroup -L topology.kubernetes.io/zone -L karpenter.sh/provisioner-name -L karpenter.sh/capacity-type'" >> "${HOME}/.bashrc"
+
+echo "✅ fzf, kns, ktx 설치 완료"
+echo "------------------------------------------------------"
+
+# eksctl 설치
+echo "🚀 [4/6] eksctl 설치 중..."
 curl -sSL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv /tmp/eksctl /usr/local/bin
 . <(eksctl completion bash)
@@ -52,58 +68,32 @@ eksctl version
 echo "✅ eksctl 설치 완료"
 echo "------------------------------------------------------"
 
-echo "📊 [4/7] K9s 설치 중..."
-K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | jq -r '.tag_name')
-curl -sL "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" | sudo tar xfz - -C /usr/local/bin k9s
-echo "✅ K9s 설치 완료"
-echo "------------------------------------------------------"
-
-echo "🔌 [5/7] Krew 설치 중..."
-(
-  set -x
-  cd "$(mktemp -d)"
-  OS="$(uname | tr '[:upper:]' '[:lower:]')"
-  ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')"
-  KREW="krew-${OS}_${ARCH}"
-  curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz"
-  tar zxvf "${KREW}.tar.gz"
-  ./"${KREW}" install krew
-)
-
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
-echo 'export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-echo "✅ Krew 설치 완료"
-echo "------------------------------------------------------"
-
-echo "🧩 [6/7] Krew 플러그인 설치 중 (ctx)..."
-kubectl krew install ctx
-# 추가로 필요한 경우
-# kubectl krew install ns
-# kubectl krew install tree
-echo "✅ ctx 플러그인 설치 완료"
-echo "------------------------------------------------------"
-
-echo "⚓ [7/7] Helm ${HELM_VERSION} 설치 중..."
-cd ~/environment
-curl -L https://git.io/get_helm.sh | bash -s -- --version ${HELM_VERSION}
+# Helm 설치 (3.16.4)
+echo "⚓ [5/6] Helm ${HELM_VERSION} 설치 중..."
+cd ~
+wget -q "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz"
+tar -zxf helm-v${HELM_VERSION}-linux-amd64.tar.gz
+sudo mv linux-amd64/helm /usr/local/bin/helm
 helm version --short
 
 helm repo add stable https://charts.helm.sh/stable
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
-# Helm 자동완성
 helm completion bash > ~/.helm_completion
-echo "source ~/.helm_completion" >> ~/.bashrc
-. /etc/profile.d/bash_completion.sh
+echo "source ~/.helm_completion" >> "${HOME}/.bashrc"
 . ~/.helm_completion
 
-echo "✅ Helm 설치 및 설정 완료"
+echo "✅ Helm 설치 완료"
 echo "------------------------------------------------------"
 
-echo "🎉 모든 EKS 개발 도구 설치 완료!"
-echo "🚀 이제 kubectl, eksctl, Helm, K9s, Krew(ctx) 등 사용이 가능합니다."
+# Bash 자동완성 설정
+echo "🧠 [6/6] Bash 자동완성 구성 중..."
+echo ". /etc/profile.d/bash_completion.sh" >> "${HOME}/.bash_profile"
+echo ". ${HOME}/.bash_completion" >> "${HOME}/.bash_profile"
+
 echo "------------------------------------------------------"
-echo "📘 Welcome to the exciting world of EKS. :)"
+echo "🎉 EKS 개발 도구 설치가 완료되었습니다!"
+echo "🛠️  설치된 도구: kubectl ${KUBECTL_VERSION}, eksctl, helm ${HELM_VERSION}, fzf, kns, ktx, jq, sponge"
+echo "📘 Welcome to the exciting world of EKS!"
 echo "------------------------------------------------------"
